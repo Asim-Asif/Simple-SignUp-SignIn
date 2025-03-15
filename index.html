@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In / Sign Up</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- tsParticles for animated background -->
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
+  <!-- GSAP for animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.0/gsap.min.js"></script>
+  <!-- Lottie for SVG animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.7.4/lottie.min.js"></script>
+  <!-- SweetAlert2 for modals -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- VanillaTilt for 3D card tilt -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.0/vanilla-tilt.min.js"></script>
+  <style>
+    /* Global reset with a light pastel background */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: linear-gradient(135deg, #c9d6ff, #e2e2e2);
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+    /* tsParticles container behind everything */
+    #tsparticles {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+    /* Angled background shapes with vibrant gradients */
+    .angleShape {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 70px;
+      transform: skewY(-6deg);
+      transform-origin: top left;
+      z-index: 0;
+    }
+    #angleShapeSignin {
+      background: linear-gradient(135deg, #89f7fe, #66a6ff);
+    }
+    #angleShapeSignup {
+      background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+    }
+    /* Card styling: white background with a subtle, vibrant shimmer border */
+    .card {
+      position: relative;
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      background: #ffffff;
+      transition: transform 0.2s ease-in-out;
+      z-index: 1;
+    }
+    /* Shimmer border animation with soft sunset hues */
+    .card::before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, #f6d365, #fda085, #f6d365, #fda085);
+      background-size: 400% 400%;
+      z-index: -1;
+      border-radius: 1.2rem;
+      animation: shimmer 4s linear infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+    /* Crisp 3D transforms for tilt effect */
+    .tilt-container, .card {
+      backface-visibility: hidden;
+      transform-style: preserve-3d;
+    }
+    /* Inputs: reduce transition duration for a sharper focus effect */
+    input {
+      color: #333;
+    }
+    input:focus {
+      transition: all 0.1s ease-in-out;
+      box-shadow: 0 0 8px rgba(0, 128, 0, 0.3);
+    }
+    /* Clear header text with minimal shadow for clarity */
+    .card h2 {
+      color: #333;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    /* Social buttons: add a subtle pulse on hover */
+    .social-btn:hover {
+      animation: pulse 0.6s ease-in-out infinite alternate;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.05); }
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center">
+  <!-- tsParticles Animated Background -->
+  <div id="tsparticles"></div>
+  
+  <!-- Container for Cards with a gentle float effect -->
+  <div class="relative flex flex-col md:flex-row items-center justify-center min-h-screen w-full px-4 gap-8" id="cardContainer">
+    <!-- Sign In Card (visible by default) -->
+    <div 
+      id="signinCard" 
+      class="tilt-container w-full max-w-md hover:scale-105 transition-transform duration-200 ease-in-out md:hover:-translate-y-1" 
+      data-tilt 
+      data-tilt-max="10" 
+      data-tilt-speed="400"
+    >
+      <div class="card p-8 shadow-2xl">
+        <!-- Angled shape behind heading -->
+        <div id="angleShapeSignin" class="angleShape"></div>
+        <!-- Lottie animation -->
+        <div id="lottie-animation-signin" class="w-24 h-24 mx-auto mt-4"></div>
+        <h2 class="text-3xl font-bold relative mt-2 text-center">Welcome Back</h2>
+        <!-- Sign In Inputs -->
+        <div class="mt-6 space-y-4">
+          <input 
+            type="email" 
+            id="lemail" 
+            placeholder="Email" 
+            required 
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+          />
+          <input 
+            type="password" 
+            id="lpassword" 
+            placeholder="Password" 
+            required 
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+          />
+          <button 
+            id="lbtn" 
+            class="w-full py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition transform hover:scale-105"
+          >
+            Sign In
+          </button>
+        </div>
+        <!-- Social Sign In -->
+        <div class="mt-6">
+          <p class="text-center text-gray-600">Or continue with</p>
+          <div class="flex flex-wrap justify-center gap-4 mt-4">
+            <button 
+              id="googleBtn" 
+              class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition-all duration-200 ease-in-out"
+            >
+              <img 
+                src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/768px-Google_%22G%22_logo.svg.png" 
+                alt="Google" 
+                class="w-6 h-6" 
+              />
+            </button>
+            <button 
+              id="microsoftBtn" 
+              class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition-all duration-200 ease-in-out"
+            >
+              <img 
+                src="https://static.vecteezy.com/system/resources/previews/027/127/473/non_2x/microsoft-logo-microsoft-icon-transparent-free-png.png" 
+                alt="Microsoft" 
+                class="w-6 h-6" 
+              />
+            </button>
+            <button 
+              id="facebookBtn" 
+              class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition-all duration-200 ease-in-out"
+            >
+              <img 
+                src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/768px-Facebook_Logo_%282019%29.png" 
+                alt="Facebook" 
+                class="w-6 h-6" 
+              />
+            </button>
+            <button 
+              id="twitterBtn" 
+              class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition-all duration-200 ease-in-out"
+            >
+              <img 
+                src="https://images.freeimages.com/image/large-previews/f35/x-twitter-logo-on-black-circle-5694247.png" 
+                alt="Twitter" 
+                class="w-6 h-6" 
+              />
+            </button>
+          </div>
+        </div>
+        <p class="mt-4 text-center text-gray-600">
+          Don't have an account? 
+          <a href="#" id="showSignup" class="text-green-500 hover:underline">Sign Up</a>
+        </p>
+      </div>
+    </div>
+    
+    <!-- Sign Up Card (hidden by default) -->
+    <div 
+      id="signupCard" 
+      class="tilt-container w-full max-w-md hidden hover:scale-105 transition-transform duration-200 ease-in-out md:hover:-translate-y-1" 
+      data-tilt 
+      data-tilt-max="10" 
+      data-tilt-speed="400"
+    >
+      <div class="card p-8 shadow-2xl">
+        <div id="angleShapeSignup" class="angleShape"></div>
+        <div id="lottie-animation-signup" class="w-24 h-24 mx-auto mt-4"></div>
+        <h2 class="text-3xl font-bold relative mt-2 text-center">Create Account</h2>
+        <!-- Sign Up Inputs -->
+        <div class="mt-6 space-y-4">
+          <input 
+            type="email" 
+            id="semail" 
+            placeholder="Email" 
+            required 
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <input 
+            type="password" 
+            id="spassword" 
+            placeholder="Password" 
+            required 
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          <button 
+            id="sbtn" 
+            class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition transform hover:scale-105"
+          >
+            Sign Up
+          </button>
+        </div>
+        <!-- Social Sign Up -->
+        <div class="mt-6">
+          <p class="text-center text-gray-600">Or continue with</p>
+          <div class="flex flex-wrap justify-center gap-4 mt-4">
+            <button 
+              id="googleBtn2" 
+              class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition-all duration-200 ease-in-out"
+            >
+              <img 
+                src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/768px-Google_%22G%22_logo.svg.png" 
+                alt="Google" 
+                class="w-6 h-6" 
+              />
+            </button>
+            <button 
+              id="microsoftBtn2" 
+              class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition-all duration-200 ease-in-out"
+            >
+              <img 
+                src="https://static.vecteezy.com/system/resources/previews/027/127/473/non_2x/microsoft-logo-microsoft-icon-transparent-free-png.png" 
+                alt="Microsoft" 
+                class="w-6 h-6" 
+              />
+            </button>
+            <button 
+              id="facebookBtn2" 
+              class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition-all duration-200 ease-in-out"
+            >
+              <img 
+                src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/768px-Facebook_Logo_%282019%29.png" 
+                alt="Facebook" 
+                class="w-6 h-6" 
+              />
+            </button>
+            <button 
+              id="twitterBtn2" 
+              class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition-all duration-200 ease-in-out"
+            >
+              <img 
+                src="https://images.freeimages.com/image/large-previews/f35/x-twitter-logo-on-black-circle-5694247.png" 
+                alt="Twitter" 
+                class="w-6 h-6" 
+              />
+            </button>
+          </div>
+        </div>
+        <p class="mt-4 text-center text-gray-600">
+          Already have an account? 
+          <a href="#" id="showSignin" class="text-blue-500 hover:underline">Sign In</a>
+        </p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Firebase & App JS -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { 
+      getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, 
+      GoogleAuthProvider, FacebookAuthProvider, OAuthProvider, TwitterAuthProvider,
+      signInWithPopup 
+    } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+    
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEL4tiiJjH8dWQGtXSFLNYcck-DzIBUoc",
+      authDomain: "sign-up-sign-in-1.firebaseapp.com",
+      projectId: "sign-up-sign-in-1",
+      storageBucket: "sign-up-sign-in-1.firebasestorage.app",
+      messagingSenderId: "594873014694",
+      appId: "1:594873014694:web:cfd312af3b0163f8889767",
+      measurementId: "G-5D7L90T972"
+    };
+    
+    const appFirebase = initializeApp(firebaseConfig);
+    const auth = getAuth(appFirebase);
+    
+    // Initialize VanillaTilt for interactive 3D effects
+    VanillaTilt.init(document.querySelectorAll(".tilt-container"), { max: 10, speed: 400 });
+    
+    // tsParticles background configuration
+    tsParticles.load("tsparticles", {
+      background: { color: { value: "#c9d6ff" } },
+      fpsLimit: 60,
+      particles: {
+        number: { value: 60, density: { enable: true, area: 800 } },
+        color: { value: "#ffffff" },
+        shape: { type: "circle" },
+        opacity: { value: 0.6, random: true },
+        size: { value: 3, random: true },
+        move: { enable: true, speed: 1.5, direction: "none", outModes: { default: "bounce" } }
+      },
+      interactivity: {
+        events: {
+          onHover: { enable: true, mode: "repulse" },
+          onClick: { enable: true, mode: "push" }
+        },
+        modes: {
+          repulse: { distance: 100, duration: 0.3 },
+          push: { quantity: 4 }
+        }
+      },
+      detectRetina: true
+    });
+    
+    // Load Lottie animations for both cards
+    lottie.loadAnimation({
+      container: document.getElementById("lottie-animation-signin"),
+      renderer: "svg",
+      loop: true,
+      autoplay: true,
+      path: "https://assets2.lottiefiles.com/packages/lf20_x62chJ.json"
+    });
+    lottie.loadAnimation({
+      container: document.getElementById("lottie-animation-signup"),
+      renderer: "svg",
+      loop: true,
+      autoplay: true,
+      path: "https://assets5.lottiefiles.com/packages/lf20_cbrbre30.json"
+    });
+    
+    // GSAP transitions between Sign In and Sign Up cards
+    const showSignup = document.getElementById("showSignup");
+    const showSignin = document.getElementById("showSignin");
+    const signinCard = document.getElementById("signinCard");
+    const signupCard = document.getElementById("signupCard");
+    
+    showSignup.addEventListener("click", (e) => {
+      e.preventDefault();
+      gsap.to(signinCard, {
+        duration: 0.3,
+        opacity: 0,
+        y: 60,
+        onComplete: () => {
+          signinCard.classList.add("hidden");
+          signupCard.classList.remove("hidden");
+          gsap.fromTo(signupCard, { opacity: 0, y: -60 }, { opacity: 1, y: 0, duration: 0.3 });
+        }
+      });
+    });
+    
+    showSignin.addEventListener("click", (e) => {
+      e.preventDefault();
+      gsap.to(signupCard, {
+        duration: 0.3,
+        opacity: 0,
+        y: 60,
+        onComplete: () => {
+          signupCard.classList.add("hidden");
+          signinCard.classList.remove("hidden");
+          gsap.fromTo(signinCard, { opacity: 0, y: -60 }, { opacity: 1, y: 0, duration: 0.3 });
+        }
+      });
+    });
+    
+    // Enhanced Error Handling with async/await for Sign In
+    document.getElementById("lbtn").addEventListener("click", async () => {
+      const email = document.getElementById("lemail").value;
+      const password = document.getElementById("lpassword").value;
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        Swal.fire({ title: "Success!", text: `${userCredential.user.email} is logged in`, icon: "success", timer: 1500, showConfirmButton: false });
+      } catch (error) {
+        gsap.to("#signinCard", { x: 5, yoyo: true, repeat: 2, duration: 0.01 });
+        Swal.fire({ title: "Error", text: error.message, icon: "error", timer: 2000, showConfirmButton: false });
+      }
+    });
+    
+    // Enhanced Error Handling with async/await for Sign Up
+    document.getElementById("sbtn").addEventListener("click", async () => {
+      const email = document.getElementById("semail").value;
+      const password = document.getElementById("spassword").value;
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        Swal.fire({ title: "Success!", text: `${userCredential.user.email} is signed up`, icon: "success", timer: 1500, showConfirmButton: false });
+      } catch (error) {
+        gsap.to("#signupCard", { x: 5, yoyo: true, repeat: 2, duration: 0.01 });
+        Swal.fire({ title: "Error", text: error.message, icon: "error", timer: 2000, showConfirmButton: false });
+      }
+    });
+    
+    // Social Login with smooth modal transitions
+    function socialLogin(provider, providerName) {
+      Swal.fire({
+        title: `Sign in with ${providerName}`,
+        html: `<p class="text-lg text-gray-600">Do you want to continue with ${providerName}?</p>`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Yes",
+        cancelButtonText: "Cancel",
+        didOpen: () => {
+          const container = Swal.getHtmlContainer();
+          gsap.from(container, { duration: 0.3, opacity: 0, y: -30 });
+        },
+        preConfirm: () => {
+          return signInWithPopup(auth, provider)
+            .then(result => result.user.email)
+            .catch(error => { throw new Error(error.message); });
+        }
+      })
+      .then((result) => {
+        if (result.isConfirmed) {
+          Swal.fire({ title: "Success", text: `${result.value} is logged in`, icon: "success", timer: 1500, showConfirmButton: false });
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+          Swal.fire({ icon: "error", title: "Cancelled", text: "Authentication was cancelled", timer: 1500, showConfirmButton: false });
+        }
+      })
+      .catch((error) => {
+        Swal.fire({ icon: "error", title: "Error!", text: error.message, timer: 2000, showConfirmButton: false });
+      });
+    }
+    
+    // Social button event listeners for Sign In card
+    document.getElementById("googleBtn").addEventListener("click", (e) => {
+      gsap.to(e.currentTarget, { duration: 0.2, scale: 0.9, yoyo: true, repeat: 1 });
+      socialLogin(new GoogleAuthProvider(), "Google");
+    });
+    document.getElementById("microsoftBtn").addEventListener("click", (e) => {
+      gsap.to(e.currentTarget, { duration: 0.2, scale: 0.9, yoyo: true, repeat: 1 });
+      socialLogin(new OAuthProvider('microsoft.com'), "Microsoft");
+    });
+    document.getElementById("facebookBtn").addEventListener("click", (e) => {
+      gsap.to(e.currentTarget, { duration: 0.2, scale: 0.9, yoyo: true, repeat: 1 });
+      socialLogin(new FacebookAuthProvider(), "Facebook");
+    });
+    document.getElementById("twitterBtn").addEventListener("click", (e) => {
+      gsap.to(e.currentTarget, { duration: 0.2, scale: 0.9, yoyo: true, repeat: 1 });
+      socialLogin(new TwitterAuthProvider(), "Twitter");
+    });
+    
+    // Social button event listeners for Sign Up card
+    document.getElementById("googleBtn2").addEventListener("click", (e) => {
+      gsap.to(e.currentTarget, { duration: 0.2, scale: 0.9, yoyo: true, repeat: 1 });
+      socialLogin(new GoogleAuthProvider(), "Google");
+    });
+    document.getElementById("microsoftBtn2").addEventListener("click", (e) => {
+      gsap.to(e.currentTarget, { duration: 0.2, scale: 0.9, yoyo: true, repeat: 1 });
+      socialLogin(new OAuthProvider('microsoft.com'), "Microsoft");
+    });
+    document.getElementById("facebookBtn2").addEventListener("click", (e) => {
+      gsap.to(e.currentTarget, { duration: 0.2, scale: 0.9, yoyo: true, repeat: 1 });
+      socialLogin(new FacebookAuthProvider(), "Facebook");
+    });
+    document.getElementById("twitterBtn2").addEventListener("click", (e) => {
+      gsap.to(e.currentTarget, { duration: 0.2, scale: 0.9, yoyo: true, repeat: 1 });
+      socialLogin(new TwitterAuthProvider(), "Twitter");
+    });
+    
+    // Gentle floating effect for the card container
+    gsap.to("#cardContainer", {
+      y: 10,
+      repeat: -1,
+      yoyo: true,
+      ease: "sine.inOut",
+      duration: 3
+    });
+    
+    // Entrance animation: Cards fade in and scale up (staggered)
+    gsap.fromTo(".card", 
+      { opacity: 0, scale: 0.8 },
+      { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.7)", stagger: 0.2 }
+    );
+  </script>
+</body>
+</html>
