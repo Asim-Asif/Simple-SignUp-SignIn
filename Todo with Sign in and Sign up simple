@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ToDo App</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- tsParticles for background animation -->
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
+  <!-- GSAP for animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.0/gsap.min.js"></script>
+  <!-- Lottie for SVG animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.7.4/lottie.min.js"></script>
+  <!-- SweetAlert2 for modals -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- SortableJS for drag-and-drop -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  
+  <style>
+    /* Global styling */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow-x: hidden;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #c9d6ff, #e2e2e2);
+    }
+    #tsparticles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+    /* Hide ToDo App until user is authenticated */
+    #todoAppContainer { display: none; }
+
+    /* ---------- SIGN IN / SIGN UP STYLES ---------- */
+    #authContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 1.5rem;
+      padding: 1rem;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 1rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.2s ease-in-out;
+      width: 100%;
+      max-width: 400px;
+    }
+    .card:hover { transform: scale(1.02); }
+    input, select, button {
+      transition: background 0.3s, color 0.3s;
+    }
+    input:focus, select:focus {
+      outline: none;
+      box-shadow: 0 0 6px rgba(0,128,0,0.2);
+    }
+    .social-btn:hover { transform: scale(1.1); }
+    .nav-tabs {
+      display: flex;
+      gap: 1rem;
+    }
+    .nav-btn {
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      border-radius: 0.375rem;
+      border: none;
+      cursor: pointer;
+      background-color: #3b82f6;
+      color: #fff;
+      transition: transform 0.2s;
+    }
+    .nav-btn.active, .nav-btn:hover {
+      background-color: #2563eb;
+      transform: scale(1.05);
+    }
+
+    /* ---------- LOGO & TSParticles ---------- */
+    #animatedLogoHeader {
+      text-align: center;
+      font-size: 2rem;
+      margin-top: 1rem;
+      overflow: hidden;
+      position: relative;
+      z-index: 10;
+    }
+    #animatedLogoHeader .logo-letter {
+      opacity: 0;
+      display: inline-block;
+    }
+    
+    /* ---------- TO-DO APP STYLES ---------- */
+    /* Big Card (Add Task) */
+    .big-card {
+      background: #ffffff;
+      border-radius: 1rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+    .card-header {
+      position: relative;
+      background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+      color: #fff;
+      font-size: 1.75rem;
+      font-weight: 600;
+      overflow: hidden;
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lottie-header-container {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      overflow: hidden;
+    }
+    .lottie-animation {
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+    }
+    .header-headline {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 2rem;
+      font-weight: 700;
+      color: #000;
+      z-index: 7;
+      margin: 0;
+    }
+    /* Task Card */
+    .task-card {
+      background: #f7f7f7;
+      border-radius: 1rem;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+    .task-card-header {
+      background: linear-gradient(135deg, #89f7fe, #66a6ff);
+      color: #fff;
+      text-align: center;
+      font-size: 1.75rem;
+      font-weight: 600;
+      padding: 1rem;
+      position: relative;
+    }
+    .lottie-tasks-header {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 80px;
+      height: 80px;
+      opacity: 0.8;
+    }
+    ul.task-list { list-style: none; padding: 0; }
+    ul.task-list li {
+      background: #ffffff;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .task-btn {
+      padding: 0.5rem 0.75rem;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+    .task-btn:hover { transform: scale(1.05); }
+    .task-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    #progressBarContainer {
+      margin: 1rem 0;
+      padding: 0.5rem;
+      background: #e2e8f0;
+      border-radius: 0.5rem;
+    }
+    #progressBar {
+      height: 10px;
+      background: #34d399;
+      border-radius: 0.5rem;
+      width: 0%;
+    }
+    
+    /* Footer */
+    footer {
+      background: #333;
+      color: #fff;
+      text-align: center;
+      padding: 1rem;
+      margin-top: 2rem;
+      width: 100%;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center">
+  <!-- tsParticles Background -->
+  <div id="tsparticles"></div>
+  
+  <!-- Animated Logo -->
+  <div id="animatedLogoHeader"></div>
+  <script>
+    // Typewriter effect for logo
+    const logoText = "Tanoli ToDo App";
+    const logoContainer = document.getElementById("animatedLogoHeader");
+    logoContainer.innerHTML = logoText.split("").map(letter => `<span class="logo-letter">${letter}</span>`).join("");
+    gsap.timeline({ repeat: -1, repeatDelay: 1 })
+      .to("#animatedLogoHeader .logo-letter", { duration: 0.15, opacity: 1, y: 0, stagger: 0.1, ease: "power2.out" })
+      .to("#animatedLogoHeader .logo-letter", { duration: 0.15, opacity: 0, y: -20, stagger: 0.1, ease: "power2.in" }, "+=1");
+  </script>
+  
+  <!-- SIGN IN / SIGN UP SECTION -->
+  <div id="authContainer" class="flex flex-col items-center justify-center min-h-screen w-full px-4 gap-8">
+    <!-- Sign In Card -->
+    <div id="signinCard" class="tilt-container w-full max-w-md hover:scale-105 transition-transform duration-200 ease-in-out" data-tilt data-tilt-max="10" data-tilt-speed="400">
+      <div class="card p-8">
+        <h2 class="text-3xl font-bold text-center mb-4">Sign In</h2>
+        <div class="space-y-4">
+          <input type="email" id="lemail" placeholder="Email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg"/>
+          <input type="password" id="lpassword" placeholder="Password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg"/>
+          <button id="lbtn" class="w-full py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition transform hover:scale-105">Sign In</button>
+        </div>
+        <div class="mt-6">
+          <p class="text-center text-gray-600">Or continue with</p>
+          <div class="flex flex-wrap justify-center gap-4 mt-4">
+            <button id="googleBtn" class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition duration-200">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/768px-Google_%22G%22_logo.svg.png" alt="Google" class="w-6 h-6"/>
+            </button>
+            <button id="microsoftBtn" class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition duration-200">
+              <img src="https://static.vecteezy.com/system/resources/previews/027/127/473/non_2x/microsoft-logo-microsoft-icon-transparent-free-png.png" alt="Microsoft" class="w-6 h-6"/>
+            </button>
+            <button id="facebookBtn" class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition duration-200">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/768px-Facebook_Logo_%282019%29.png" alt="Facebook" class="w-6 h-6"/>
+            </button>
+            <button id="twitterBtn" class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition duration-200">
+              <img src="https://images.freeimages.com/image/large-previews/f35/x-twitter-logo-on-black-circle-5694247.png" alt="Twitter" class="w-6 h-6"/>
+            </button>
+          </div>
+        </div>
+        <p class="mt-4 text-center text-gray-600">Don't have an account? <a href="#" id="showSignup" class="text-green-500 hover:underline">Sign Up</a></p>
+      </div>
+    </div>
+    <!-- Sign Up Card (hidden by default) -->
+    <div id="signupCard" class="tilt-container w-full max-w-md hidden hover:scale-105 transition-transform duration-200 ease-in-out" data-tilt data-tilt-max="10" data-tilt-speed="400">
+      <div class="card p-8">
+        <h2 class="text-3xl font-bold text-center mb-4">Sign Up</h2>
+        <div class="space-y-4">
+          <input type="email" id="semail" placeholder="Email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg"/>
+          <input type="password" id="spassword" placeholder="Password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg"/>
+          <button id="sbtn" class="w-full py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition transform hover:scale-105">Sign Up</button>
+        </div>
+        <div class="mt-6">
+          <p class="text-center text-gray-600">Or continue with</p>
+          <div class="flex flex-wrap justify-center gap-4 mt-4">
+            <button id="googleBtn2" class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition duration-200">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/768px-Google_%22G%22_logo.svg.png" alt="Google" class="w-6 h-6"/>
+            </button>
+            <button id="microsoftBtn2" class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition duration-200">
+              <img src="https://static.vecteezy.com/system/resources/previews/027/127/473/non_2x/microsoft-logo-microsoft-icon-transparent-free-png.png" alt="Microsoft" class="w-6 h-6"/>
+            </button>
+            <button id="facebookBtn2" class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition duration-200">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/768px-Facebook_Logo_%282019%29.png" alt="Facebook" class="w-6 h-6"/>
+            </button>
+            <button id="twitterBtn2" class="social-btn bg-white border rounded-full p-3 flex items-center justify-center transition duration-200">
+              <img src="https://images.freeimages.com/image/large-previews/f35/x-twitter-logo-on-black-circle-5694247.png" alt="Twitter" class="w-6 h-6"/>
+            </button>
+          </div>
+        </div>
+        <p class="mt-4 text-center text-gray-600">Already have an account? <a href="#" id="showSignin" class="text-blue-500 hover:underline">Sign In</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TO-DO APP SECTION (shown after authentication) -->
+  <div id="todoAppContainer" class="container mx-auto p-4">
+    <!-- Logout Button -->
+    <div class="text-right mb-4">
+      <button id="logoutBtn" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition">Logout</button>
+    </div>
+    <!-- Add Task Card with Multi-Lottie Animations -->
+    <div class="big-card mb-6">
+      <div class="card-header">
+        <div class="lottie-header-container">
+          <div id="lottieAnimation1" class="lottie-animation"></div>
+          <div id="lottieAnimation2" class="lottie-animation"></div>
+          <div id="lottieAnimation3" class="lottie-animation"></div>
+          <div id="lottieAnimation4" class="lottie-animation"></div>
+        </div>
+        <h2 class="header-headline">Add Your Epic Tasks</h2>
+      </div>
+      <div class="p-6">
+        <div class="flex flex-wrap gap-4 mb-4">
+          <input type="text" id="todoInput" class="flex-1 p-3 border rounded" placeholder="Task description">
+          <div class="flex flex-col">
+            <label class="text-sm font-medium">Due Date</label>
+            <input type="date" id="dateInput" class="p-3 border rounded">
+          </div>
+          <div class="flex flex-col">
+            <label class="text-sm font-medium">Due Time</label>
+            <input type="time" id="timeInput" class="p-3 border rounded">
+          </div>
+          <div class="flex flex-col">
+            <label class="text-sm font-medium">Priority</label>
+            <select id="prioritySelect" class="p-3 border rounded">
+              <option value="Medium" selected>Medium</option>
+              <option value="High">High</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+          <div class="flex flex-col">
+            <label class="text-sm font-medium">Recurring Task?</label>
+            <input type="checkbox" id="recurringCheckbox" class="mt-2">
+            <select id="recurringSelect" class="p-2 border rounded mt-2 hidden">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+          <button id="addTodoBtn" class="px-4 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 transition transform hover:scale-105">
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- View Tasks Section -->
+    <div class="task-card">
+      <div class="task-card-header relative">
+        Your Tasks
+        <div id="lottieTasksHeader" class="lottie-tasks-header"></div>
+      </div>
+      <div class="flex flex-col md:flex-row justify-around p-4">
+        <button id="markAllBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">Mark All Done</button>
+        <button id="deleteAllBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">Delete All</button>
+      </div>
+      <div class="px-4 mb-4">
+        <div id="progressBarContainer">
+          <div id="progressBar"></div>
+        </div>
+      </div>
+      <div class="flex flex-col md:flex-row gap-4 px-4 mb-4">
+        <input type="text" id="searchInput" class="w-full p-2 border rounded" placeholder="Search tasks...">
+        <select id="sortSelect" class="w-full p-2 border rounded">
+          <option value="none" selected>Sort By: None</option>
+          <option value="due">Sort By Due Date/Time</option>
+          <option value="priority">Sort By Priority</option>
+        </select>
+      </div>
+      <div id="taskListContainer" class="p-4">
+        <ul class="task-list" id="taskList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-gray-800 text-center text-white py-3 mt-6">
+    &copy; <span id="year"></span> ASIM ASIF. All rights reserved.
+  </footer>
+
+  <script>
+    /***************** tsParticles Background *****************/
+    tsParticles.load("tsparticles", {
+      background: { color: { value: "#c9d6ff" } },
+      fpsLimit: 60,
+      particles: {
+        number: { value: 30, density: { enable: true, area: 800 } },
+        color: { value: "#ffffff" },
+        shape: { type: "circle" },
+        opacity: { value: 0.5, random: true },
+        size: { value: 3, random: true },
+        move: { enable: true, speed: 1.5, direction: "none", outModes: { default: "bounce" } }
+      },
+      interactivity: {
+        events: {
+          onHover: { enable: true, mode: "repulse" },
+          onClick: { enable: true, mode: "push" }
+        },
+        modes: {
+          repulse: { distance: 100, duration: 0.3 },
+          push: { quantity: 3 }
+        }
+      },
+      detectRetina: true
+    });
+
+    /***************** Firebase Init *****************/
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEL4tiiJjH8dWQGtXSFLNYcck-DzIBUoc",
+      authDomain: "sign-up-sign-in-1.firebaseapp.com",
+      projectId: "sign-up-sign-in-1",
+      storageBucket: "sign-up-sign-in-1.firebasestorage.app",
+      messagingSenderId: "594873014694",
+      appId: "1:594873014694:web:cfd312af3b0163f8889767",
+      measurementId: "G-5D7L90T972"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    /***************** SIGN IN / SIGN UP FUNCTIONS *****************/
+    const signinCard = document.getElementById("signinCard");
+    const signupCard = document.getElementById("signupCard");
+    const showSignup = document.getElementById("showSignup");
+    const showSignin = document.getElementById("showSignin");
+
+    showSignup.addEventListener("click", e => {
+      e.preventDefault();
+      signinCard.classList.add("hidden");
+      signupCard.classList.remove("hidden");
+    });
+    showSignin.addEventListener("click", e => {
+      e.preventDefault();
+      signupCard.classList.add("hidden");
+      signinCard.classList.remove("hidden");
+    });
+
+    // Sign In
+    document.getElementById("lbtn").addEventListener("click", async () => {
+      const email = document.getElementById("lemail").value;
+      const password = document.getElementById("lpassword").value;
+      try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        Swal.fire("Success!", `${userCredential.user.email} is logged in`, "success");
+      } catch (error) {
+        Swal.fire("Error", error.message, "error");
+      }
+    });
+    // Sign Up
+    document.getElementById("sbtn").addEventListener("click", async () => {
+      const email = document.getElementById("semail").value;
+      const password = document.getElementById("spassword").value;
+      try {
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        Swal.fire("Success!", `${userCredential.user.email} is signed up`, "success");
+      } catch (error) {
+        Swal.fire("Error", error.message, "error");
+      }
+    });
+
+    // Social logins
+    function socialLogin(provider, providerName) {
+      Swal.fire({
+        title: `Sign in with ${providerName}`,
+        text: `Do you want to continue with ${providerName}?`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Yes",
+        cancelButtonText: "Cancel"
+      }).then(result => {
+        if (result.isConfirmed) {
+          auth.signInWithPopup(provider)
+            .then(userCred => {
+              Swal.fire("Success", `${userCred.user.email} is logged in`, "success");
+            })
+            .catch(err => {
+              Swal.fire("Error", err.message, "error");
+            });
+        }
+      });
+    }
+    document.getElementById("googleBtn").addEventListener("click", () => {
+      socialLogin(new firebase.auth.GoogleAuthProvider(), "Google");
+    });
+    document.getElementById("microsoftBtn").addEventListener("click", () => {
+      socialLogin(new firebase.auth.OAuthProvider('microsoft.com'), "Microsoft");
+    });
+    document.getElementById("facebookBtn").addEventListener("click", () => {
+      socialLogin(new firebase.auth.FacebookAuthProvider(), "Facebook");
+    });
+    document.getElementById("twitterBtn").addEventListener("click", () => {
+      socialLogin(new firebase.auth.TwitterAuthProvider(), "Twitter");
+    });
+    // For Sign Up card social buttons (if desired)
+    document.getElementById("googleBtn2").addEventListener("click", () => {
+      socialLogin(new firebase.auth.GoogleAuthProvider(), "Google");
+    });
+    document.getElementById("microsoftBtn2").addEventListener("click", () => {
+      socialLogin(new firebase.auth.OAuthProvider('microsoft.com'), "Microsoft");
+    });
+    document.getElementById("facebookBtn2").addEventListener("click", () => {
+      socialLogin(new firebase.auth.FacebookAuthProvider(), "Facebook");
+    });
+    document.getElementById("twitterBtn2").addEventListener("click", () => {
+      socialLogin(new firebase.auth.TwitterAuthProvider(), "Twitter");
+    });
+
+    // On auth state change, toggle UI
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById("authContainer").style.display = "none";
+        document.getElementById("todoAppContainer").style.display = "block";
+        fetchTodos();
+      } else {
+        document.getElementById("authContainer").style.display = "flex";
+        document.getElementById("todoAppContainer").style.display = "none";
+      }
+    });
+
+    // Logout
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await auth.signOut();
+      Swal.fire("Logged out!", "", "info");
+    });
+
+    /***************** Multi-Lottie Animations (Add Task Header) *****************/
+    const lottiePaths = [
+      "https://assets7.lottiefiles.com/packages/lf20_puciaact.json",
+      "https://assets7.lottiefiles.com/packages/lf20_3vbOcw.json",
+      "https://assets2.lottiefiles.com/packages/lf20_x62chJ.json",
+      "https://assets5.lottiefiles.com/packages/lf20_cbrbre30.json"
+    ];
+    // Load each Lottie animation
+    const headerAnims = ["lottieAnimation1", "lottieAnimation2", "lottieAnimation3", "lottieAnimation4"];
+    headerAnims.forEach((id, index) => {
+      lottie.loadAnimation({
+        container: document.getElementById(id),
+        renderer: "svg",
+        loop: true,
+        autoplay: true,
+        path: lottiePaths[index]
+      });
+    });
+    // Cycle through animations using GSAP timeline
+    const tl = gsap.timeline({ repeat: -1 });
+    headerAnims.forEach(id => {
+      tl.to(`#${id}`, { autoAlpha: 1, duration: 1 })
+        .to(`#${id}`, { autoAlpha: 1, duration: 2 })
+        .to(`#${id}`, { autoAlpha: 0, duration: 1 });
+    });
+
+    /***************** ToDo App CRUD *****************/
+    let allTodos = [];
+    const recurringCheckbox = document.getElementById("recurringCheckbox");
+    const recurringSelect = document.getElementById("recurringSelect");
+    recurringCheckbox.addEventListener("change", () => {
+      recurringCheckbox.checked ? recurringSelect.classList.remove("hidden") : recurringSelect.classList.add("hidden");
+    });
+
+    async function fetchTodos() {
+      try {
+        const snapshot = await db.collection("todos").where("owner", "==", auth.currentUser.uid).get();
+        allTodos = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          allTodos.push({
+            id: doc.id,
+            name: data.name || "",
+            done: data.done || false,
+            dueDate: data.dueDate || "",
+            priority: data.priority || "Medium",
+            recurring: data.recurring || false,
+            recurringFreq: data.recurringFreq || ""
+          });
+        });
+        renderTodos();
+      } catch (error) {
+        Swal.fire("Error", "Error fetching tasks!", "error");
+      }
+    }
+
+    async function addTodo(name, dueDate, dueTime, priority) {
+      let combinedDue = "";
+      if (dueDate && dueTime) { combinedDue = dueDate + "T" + dueTime; }
+      const recurring = recurringCheckbox.checked;
+      const recurringFreq = recurring ? recurringSelect.value : "";
+      try {
+        await db.collection("todos").add({
+          owner: auth.currentUser.uid,
+          name,
+          done: false,
+          dueDate: combinedDue,
+          priority,
+          recurring,
+          recurringFreq
+        });
+        Swal.fire("Added!", "Task added successfully.", "success");
+        fetchTodos();
+      } catch (err) {
+        Swal.fire("Error", "Error adding task!", "error");
+      }
+    }
+
+    async function deleteTodo(todoId) {
+      try {
+        await db.collection("todos").doc(todoId).delete();
+        Swal.fire("Deleted!", "Task deleted.", "success");
+        fetchTodos();
+      } catch (err) {
+        Swal.fire("Error", "Error deleting task!", "error");
+      }
+    }
+
+    async function updateTodo(todoId, newData) {
+      try {
+        await db.collection("todos").doc(todoId).update(newData);
+        Swal.fire("Updated!", "Task updated.", "success");
+        fetchTodos();
+      } catch (err) {
+        Swal.fire("Error", "Error updating task!", "error");
+      }
+    }
+
+    async function toggleDone(todoId) {
+      const found = allTodos.find(t => t.id === todoId);
+      if (!found) return;
+      try {
+        await db.collection("todos").doc(todoId).update({ done: !found.done });
+        Swal.fire(found.done ? "Undone!" : "Done!", "", "success");
+        fetchTodos();
+      } catch (err) {
+        Swal.fire("Error", "Error updating task status!", "error");
+      }
+    }
+
+    document.getElementById("addTodoBtn").addEventListener("click", () => {
+      const name = document.getElementById("todoInput").value.trim();
+      const dueDate = document.getElementById("dateInput").value;
+      const dueTime = document.getElementById("timeInput").value;
+      const priority = document.getElementById("prioritySelect").value;
+      if (!name) {
+        Swal.fire("Missing Task", "Please enter a task description.", "warning");
+        return;
+      }
+      addTodo(name, dueDate, dueTime, priority);
+      document.getElementById("todoInput").value = "";
+      document.getElementById("dateInput").value = "";
+      document.getElementById("timeInput").value = "";
+      document.getElementById("prioritySelect").value = "Medium";
+      recurringCheckbox.checked = false;
+      recurringSelect.classList.add("hidden");
+    });
+
+    // Bulk Actions
+    document.getElementById("markAllBtn").addEventListener("click", async () => {
+      try {
+        const promises = allTodos.map(t => t.done ? null : db.collection("todos").doc(t.id).update({ done: true }));
+        await Promise.all(promises);
+        Swal.fire("All Marked!", "All tasks marked as done.", "success");
+        fetchTodos();
+      } catch (err) {
+        Swal.fire("Error", "Error marking tasks done.", "error");
+      }
+    });
+    document.getElementById("deleteAllBtn").addEventListener("click", () => {
+      Swal.fire({
+        title: "Are you sure?",
+        text: "This will delete all tasks!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, delete all!"
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          try {
+            const promises = allTodos.map(t => db.collection("todos").doc(t.id).delete());
+            await Promise.all(promises);
+            Swal.fire("Deleted!", "All tasks deleted.", "success");
+            fetchTodos();
+          } catch (err) {
+            Swal.fire("Error", "Error deleting tasks.", "error");
+          }
+        }
+      });
+    });
+
+    function createTodoItem(todo) {
+      const { id, name, done, dueDate, priority, recurring, recurringFreq } = todo;
+      const now = new Date();
+      let isOverdue = false;
+      if (dueDate) { isOverdue = now >= new Date(dueDate) && !done; }
+
+      let dueDatePart = "", dueTimePart = "";
+      if (dueDate) {
+        const parts = dueDate.split("T");
+        dueDatePart = parts[0];
+        dueTimePart = parts[1] || "";
+      }
+
+      const li = document.createElement("li");
+      li.className = "flex flex-col md:flex-row md:justify-between md:items-center";
+
+      if (isOverdue) {
+        li.innerHTML = `
+          <div>
+            <p class="font-medium text-red-600 text-lg">${name}</p>
+            <p class="text-sm text-red-500">Task is overdue!</p>
+            ${dueDate ? `<p class="text-xs text-red-500">Due: ${dueDatePart} ${dueTimePart}</p>` : ""}
+            ${recurring ? `<p class="text-xs text-red-500">Recurring: ${recurringFreq}</p>` : ""}
+          </div>
+          <div class="mt-2 md:mt-0">
+            <button class="task-btn bg-red-500 text-white">Delete</button>
+          </div>
+        `;
+        li.querySelector("button").addEventListener("click", () => {
+          gsap.to(li, { duration: 0.5, opacity: 0, x: 100, onComplete: () => deleteTodo(id) });
+        });
+      } else {
+        li.innerHTML = `
+          <div class="flex-1">
+            <p class="${done ? 'line-through text-gray-600' : 'font-medium'} text-lg">${name}</p>
+            <p class="text-sm ${done ? 'text-gray-600' : 'text-gray-800'}">
+              ${dueDate ? `Due: ${dueDatePart} ${dueTimePart}` : 'No due date'} | Priority: ${priority}
+            </p>
+            ${recurring ? `<p class="text-xs text-blue-700">Recurring: ${recurringFreq}</p>` : ""}
+          </div>
+          <div class="task-actions mt-2 md:mt-0 flex gap-2">
+            <button class="task-btn ${done ? 'bg-yellow-500' : 'bg-green-500'} text-white">
+              ${done ? "Undo" : "Done"}
+            </button>
+            <button class="task-btn bg-blue-500 text-white">Edit</button>
+            <button class="task-btn bg-red-500 text-white">Delete</button>
+            <button class="task-btn bg-purple-500 text-white">Share</button>
+          </div>
+        `;
+        li.querySelectorAll("button")[0].addEventListener("click", () => {
+          gsap.to(li, { duration: 0.4, x: 15, yoyo: true, repeat: 1 });
+          toggleDone(id);
+        });
+        li.querySelectorAll("button")[1].addEventListener("click", () => {
+          Swal.fire({
+            title: "Edit Task",
+            html: `
+              <input id="swal-input1" class="swal2-input" placeholder="Task description" value="${name}">
+              <input id="swal-input2" type="date" class="swal2-input" value="${dueDate ? dueDatePart : ""}">
+              <input id="swal-input3" type="time" class="swal2-input" value="${dueTimePart}">
+              <select id="swal-input4" class="swal2-input">
+                <option value="High" ${priority === 'High' ? 'selected' : ''}>High</option>
+                <option value="Medium" ${priority === 'Medium' ? 'selected' : ''}>Medium</option>
+                <option value="Low" ${priority === 'Low' ? 'selected' : ''}>Low</option>
+              </select>
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="swal-recurring" ${recurring ? "checked" : ""}>
+                <label for="swal-recurring" class="text-sm">Recurring</label>
+              </div>
+              <select id="swal-recurringSelect" class="swal2-input ${recurring ? "" : "hidden"}">
+                <option value="daily" ${recurringFreq === 'daily' ? 'selected' : ''}>Daily</option>
+                <option value="weekly" ${recurringFreq === 'weekly' ? 'selected' : ''}>Weekly</option>
+                <option value="monthly" ${recurringFreq === 'monthly' ? 'selected' : ''}>Monthly</option>
+              </select>
+            `,
+            didOpen: () => {
+              const recurringCheck = document.getElementById('swal-recurring');
+              const recurringSel = document.getElementById('swal-recurringSelect');
+              recurringCheck.addEventListener("change", () => {
+                recurringCheck.checked ? recurringSel.classList.remove("hidden") : recurringSel.classList.add("hidden");
+              });
+            },
+            preConfirm: () => {
+              return {
+                newText: document.getElementById("swal-input1").value,
+                newDate: document.getElementById("swal-input2").value,
+                newTime: document.getElementById("swal-input3").value,
+                newPriority: document.getElementById("swal-input4").value,
+                newRecurring: document.getElementById("swal-recurring").checked,
+                newRecurringFreq: document.getElementById("swal-recurringSelect").value
+              }
+            }
+          }).then(result => {
+            if (result.isConfirmed) {
+              let updatedDue = result.value.newDate;
+              if (result.value.newDate && result.value.newTime) {
+                updatedDue = result.value.newDate + "T" + result.value.newTime;
+              }
+              updateTodo(id, {
+                name: result.value.newText,
+                dueDate: updatedDue,
+                priority: result.value.newPriority,
+                recurring: result.value.newRecurring,
+                recurringFreq: result.value.newRecurring ? result.value.newRecurringFreq : ""
+              });
+            }
+          });
+        });
+        li.querySelectorAll("button")[2].addEventListener("click", () => {
+          gsap.to(li, { duration: 0.5, opacity: 0, x: 100, onComplete: () => deleteTodo(id) });
+        });
+        li.querySelectorAll("button")[3].addEventListener("click", () => {
+          const taskDetails = `Task: ${name}\nDue: ${dueDatePart} ${dueTimePart}\nPriority: ${priority}`;
+          navigator.clipboard.writeText(taskDetails)
+            .then(() => Swal.fire("Copied!", "Task details copied to clipboard.", "success"))
+            .catch(() => Swal.fire("Error", "Failed to copy details.", "error"));
+        });
+      }
+      gsap.from(li, { duration: 0.4, y: 30, opacity: 0, ease: "power2.out" });
+      return li;
+    }
+
+    function renderTodos() {
+      const taskList = document.getElementById("taskList");
+      taskList.innerHTML = "";
+      let filteredTodos = [...allTodos];
+
+      // Sorting
+      const sortOption = document.getElementById("sortSelect").value;
+      if (sortOption === "due") {
+        filteredTodos.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+      } else if (sortOption === "priority") {
+        const order = { "High": 1, "Medium": 2, "Low": 3 };
+        filteredTodos.sort((a, b) => order[a.priority] - order[b.priority]);
+      }
+
+      // Searching
+      const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+      if (searchTerm) {
+        filteredTodos = filteredTodos.filter(t => t.name.toLowerCase().includes(searchTerm));
+      }
+
+      // Update progress bar
+      const total = allTodos.length;
+      const completed = allTodos.filter(t => t.done).length;
+      const percent = total > 0 ? (completed / total) * 100 : 0;
+      document.getElementById("progressBar").style.width = percent + "%";
+
+      if (filteredTodos.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "No tasks found.";
+        li.className = "text-center text-gray-600";
+        taskList.appendChild(li);
+      } else {
+        filteredTodos.forEach(todo => taskList.appendChild(createTodoItem(todo)));
+      }
+    }
+
+    // SortableJS for drag-and-drop reordering
+    if (typeof Sortable !== "undefined") {
+      new Sortable(document.getElementById("taskList"), {
+        animation: 150,
+        onEnd: function () {
+          console.log("Task order changed");
+        }
+      });
+    }
+    
+    document.getElementById("sortSelect").addEventListener("change", () => renderTodos());
+
+    // Initialize year in footer
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Basic entrance animation for auth container
+    gsap.from("#authContainer", { duration: 1, opacity: 0, y: 20, ease: "power2.out" });
+  </script>
+</body>
+</html>
